@@ -25,8 +25,8 @@ class TestTee(unittest.TestCase):
 
     def check(self, input_str, expected_output_str):
         tee = ptee.Tee()
-        tee.regex = r'^status'
-        tee.heading_regex = r'^heading'
+        tee.append_level_regex(1, r'^status')
+        tee.append_heading_regex(r'^heading')
         tee.outfile = StringIO()
         input_str = self.fixup_str(input_str)
         with closing(tee):
@@ -94,7 +94,9 @@ class TestTee(unittest.TestCase):
                    status #1\a
                    status longer #2\a
                    status #3       \a
-                   status  #4\a\n
+                   status  #4\a
+                             \a
+                   status  #4
                    line 2
                    line 3
                    """)
@@ -109,11 +111,15 @@ class TestTee(unittest.TestCase):
                    line 3
                    """,
                    """
-                   heading line\a\n
+                   heading line
                    status #1\a
-                   status longer #2\a\n
+                   status longer #2\a
+                                   \a
+                   status longer #2
                    spaces      $
-                   status #2\a\n
+                   status #2\a
+                            \a
+                   status #2
                    line 3
                    """)
 
