@@ -28,6 +28,7 @@ epilog = """\
   "OR" operator, '|'.
 """
 
+import codecs
 import sys
 import os
 import io
@@ -61,7 +62,7 @@ class Tee(object):
         self._last_status = ''
         self._ditto_files = []
         self._strip = False
-        self._outfile = sys.stdout
+        self._outfile = codecs.getwriter('utf-8')(sys.stdout, errors='replace')
         self._regexes = []
         self._heading_regex = ''
         self._heading = ''
@@ -151,9 +152,10 @@ class Tee(object):
     def add_ditto_file(self, ditto_file):
         self._ditto_files.append(ditto_file)
 
-    def open_ditto_file(self, ditto_file, append=False):
+    def open_ditto_file(self, ditto_file, append=False, encoding='utf-8'):
         mode = 'a' if append else 'w'
-        self.add_ditto_file(io.open(ditto_file, mode))
+        mode += 't'
+        self.add_ditto_file(io.open(ditto_file, mode, encoding=encoding))
 
     def close_ditto_files(self):
         while self._ditto_files:
@@ -165,7 +167,7 @@ class Tee(object):
 
     def drain(self, infile):
         while True:
-            line = str(infile.readline())
+            line = infile.readline()
             if line:
                 self.put_line(line)
             else:
@@ -223,6 +225,11 @@ def inner_main():
                         action='store_false',
                         dest='strip',
                         help="""turn off --strip option""")
+    parser.add_argument('--encoding',
+                        dest='encoding',
+                        default='utf-8',
+                        help="""encoding to use for all files (defaults to
+                        utf-8)""")
     parser.add_argument('files',
                         nargs='*',
                         metavar='OUTFILE',
@@ -245,10 +252,14 @@ def inner_main():
         tee.strip = not os.isatty(sys.stdout.fileno())
     else:
         tee.strip = args.strip
+    tee.outfile = codecs.getwriter(args.encoding)(sys.stdout, errors='replace')
+    infile = codecs.getreader(args.encoding)(sys.stdin, errors='replace')
     with closing(tee):
         for name in args.files:
-            tee.open_ditto_file(name, append=args.append)
-        tee.drain(sys.stdin)
+            tee.open_ditto_file(name,
+                                append=args.append,
+                                encoding=args.encoding)
+        tee.drain(infile)
 
 
 def main():
