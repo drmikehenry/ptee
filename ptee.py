@@ -37,6 +37,46 @@ import argparse
 from contextlib import closing
 
 
+try:
+    from blessed import Terminal
+    _term = Terminal()
+except ImportError:
+    _term = None
+
+
+_term_width = 80
+"""Width of terminal in columns."""
+
+
+def get_terminal_width():
+    return _term_width
+
+
+def set_terminal_width(width):
+    global _term_width
+    _term_width = width
+
+
+def track_terminal_width():
+    if not _term:
+        return
+    set_terminal_width(_term.width)
+    try:
+        import signal
+    except ImportError:
+        return
+    try:
+        signum = signal.SIGWINCH
+    except AttributeError:
+        return
+
+    def handler(sig, action):
+        set_terminal_width(_term.width)
+
+    signal.signal(signum, handler)
+    signal.siginterrupt(signum, False)
+
+
 def fwrite(file, string):
     """Flushed write to file."""
 
@@ -68,6 +108,7 @@ class Tee(object):
         self._heading = ''
         self._context_lines = []
         self._display_level = 0
+        self._width = 0
 
     @property
     def outfile(self):
@@ -85,6 +126,14 @@ class Tee(object):
     def strip(self, strip):
         self._strip = strip
 
+    @property
+    def width(self):
+        return self._width
+
+    @width.setter
+    def width(self, width):
+        self._width = width
+
     def append_level_regex(self, level, regex):
         while level >= len(self._regexes):
             self._regexes.append(r'')
@@ -98,9 +147,17 @@ class Tee(object):
 
     def write_status(self, status):
         if not self.strip:
-            status = status.rstrip()
-
-            # TODO Reduce status length based on TTY columns.
+            status = status.rstrip().expandtabs()
+            width = self.width or get_terminal_width()
+            if width and len(status) > width:
+                min_width = 10
+                if len(status) >= min_width:
+                    ellipsis = ' ... '
+                    room = width - len(ellipsis)
+                    pre_room = (room * 3) // 4
+                    post_room = room - pre_room
+                    status = status[:pre_room] + ellipsis + status[-post_room:]
+                status = status[:width]
             padded_status = status.ljust(len(self._last_status))
             if padded_status:
                 self._write(padded_status + '\r')
@@ -225,6 +282,12 @@ def inner_main():
                         action='store_false',
                         dest='strip',
                         help="""turn off --strip option""")
+    parser.add_argument('--width',
+                        type=int,
+                        dest='width',
+                        default=0,
+                        help="""width of terminal for truncating status lines
+                        (0 ==> detect terminal width automatically)""")
     parser.add_argument('--encoding',
                         dest='encoding',
                         default='utf-8',
@@ -237,6 +300,7 @@ def inner_main():
                         output file""")
 
     args = parser.parse_args()
+    track_terminal_width()
     tee = Tee()
     for level, regex in args.level_regexes:
         try:
@@ -252,6 +316,7 @@ def inner_main():
         tee.strip = not os.isatty(sys.stdout.fileno())
     else:
         tee.strip = args.strip
+    tee.width = args.width
     tee.outfile = codecs.getwriter(args.encoding)(sys.stdout, errors='replace')
     infile = codecs.getreader(args.encoding)(sys.stdin, errors='replace')
     with closing(tee):

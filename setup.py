@@ -23,6 +23,7 @@ setup(
     py_modules=[NAME],
     install_requires=[
         'future',
+        'blessed',
     ],
     entry_points={
         'console_scripts': [
