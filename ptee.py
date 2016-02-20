@@ -140,10 +140,16 @@ class Progress(object):
     def append_heading_regex(self, regex):
         self._heading_regex = regex_join(self._heading_regex, regex)
 
-    def _write(self, string):
+    def close(self):
+        self._erase_status()
+
+    def put_line(self, line):
+        self._write_line(line)
+
+    def _raw_write(self, string):
         fwrite(self.outfile, string)
 
-    def write_status(self, status):
+    def _write_status(self, status):
         if not self.strip:
             status = status.rstrip().expandtabs()
             width = self.width or get_terminal_width()
@@ -158,23 +164,19 @@ class Progress(object):
                 status = status[:width]
             padded_status = status.ljust(len(self._last_status))
             if padded_status:
-                self._write(padded_status + '\r')
+                self._raw_write(padded_status + '\r')
             self._last_status = status
 
-    def erase_status(self):
+    def _erase_status(self):
         if self._last_status:
-            self._write(' ' * len(self._last_status) + '\r')
+            self._raw_write(' ' * len(self._last_status) + '\r')
             self._last_status = ''
 
-    def write(self, line):
-        self.erase_status()
-        self._write(line)
-
-    def clear_context(self):
+    def _clear_context(self):
         self._context_lines = []
         self._display_level = 0
 
-    def set_context(self, level, context):
+    def _set_context(self, level, context):
         if self._display_level > level:
             self._display_level = level
         del self._context_lines[level + 1:]
@@ -183,27 +185,25 @@ class Progress(object):
         self._context_lines[level] = context
         lines = [s.rstrip() for s in self._context_lines]
         lines = [line for line in lines if line]
-        self.write_status('  '.join(lines))
+        self._write_status('  '.join(lines))
 
-    def show_context(self):
+    def _show_context(self):
+        self._erase_status()
         end_level = len(self._context_lines)
         for level in range(self._display_level, end_level):
-            self.write(self._context_lines[level])
+            self._raw_write(self._context_lines[level])
         self._display_level = end_level
 
-    def put_line(self, line):
+    def _write_line(self, line):
         if self._heading_regex and re.search(self._heading_regex, line):
-            self.clear_context()
+            self._clear_context()
         for level, regex in enumerate(self._regexes):
             if regex and re.search(regex, line):
-                self.set_context(level, line)
+                self._set_context(level, line)
                 break
         else:
-            self.show_context()
-            self.write(line)
-
-    def close(self):
-        self.erase_status()
+            self._show_context()
+            self._raw_write(line)
 
 DEFAULT_LEVEL = 2
 """Default LEVEL value for --regex switch."""
