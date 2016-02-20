@@ -96,7 +96,7 @@ def regex_join(*regexes):
     return regex
 
 
-class Tee(object):
+class Progress(object):
     def __init__(self):
         self._last_status = ''
         self._strip = False
@@ -276,23 +276,24 @@ def inner_main():
 
     args = parser.parse_args()
     track_terminal_width()
-    tee = Tee()
+    progress = Progress()
     for level, regex in args.level_regexes:
         try:
             level = int(level)
         except ValueError:
             parser.error('invalid LEVEL %s' % repr(level))
-        tee.append_level_regex(int(level), regex)
+        progress.append_level_regex(int(level), regex)
     for regex in args.regexes:
-        tee.append_level_regex(DEFAULT_LEVEL, regex)
+        progress.append_level_regex(DEFAULT_LEVEL, regex)
     for regex in args.heading_regexes:
-        tee.append_heading_regex(regex)
+        progress.append_heading_regex(regex)
     if args.strip is None:
-        tee.strip = not os.isatty(sys.stdout.fileno())
+        progress.strip = not os.isatty(sys.stdout.fileno())
     else:
-        tee.strip = args.strip
-    tee.width = args.width
-    tee.outfile = codecs.getwriter(args.encoding)(sys.stdout, errors='replace')
+        progress.strip = args.strip
+    progress.width = args.width
+    progress.outfile = codecs.getwriter(args.encoding)(sys.stdout,
+                                                       errors='replace')
     infile = codecs.getreader(args.encoding)(sys.stdin, errors='replace')
     ditto_files = []
     mode = ('a' if args.append else 'w') + 'b'
@@ -304,11 +305,11 @@ def inner_main():
             if line:
                 for f in ditto_files:
                     fwrite(f, line)
-                tee.put_line(line)
+                progress.put_line(line)
             else:
                 break
     finally:
-        tee.close()
+        progress.close()
         for f in ditto_files:
             f.close()
 

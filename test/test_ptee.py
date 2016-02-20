@@ -24,16 +24,16 @@ class TestTee(unittest.TestCase):
         return s
 
     def check(self, input_str, expected_output_str):
-        tee = ptee.Tee()
-        tee.append_level_regex(1, r'^status')
-        tee.append_heading_regex(r'^heading')
-        tee.outfile = StringIO()
+        progress = ptee.Progress()
+        progress.append_level_regex(1, r'^status')
+        progress.append_heading_regex(r'^heading')
+        progress.outfile = StringIO()
         input_str = self.fixup_str(input_str)
-        with closing(tee):
+        with closing(progress):
             for line in StringIO(input_str):
-                tee.put_line(line)
+                progress.put_line(line)
         expected_output_str = self.fixup_str(expected_output_str)
-        self.assertEqual(tee.outfile.getvalue(), expected_output_str)
+        self.assertEqual(progress.outfile.getvalue(), expected_output_str)
 
     def test_empty(self):
         self.check('',
