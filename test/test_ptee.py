@@ -30,7 +30,8 @@ class TestTee(unittest.TestCase):
         tee.outfile = StringIO()
         input_str = self.fixup_str(input_str)
         with closing(tee):
-            tee.drain(StringIO(input_str))
+            for line in StringIO(input_str):
+                tee.put_line(line)
         expected_output_str = self.fixup_str(expected_output_str)
         self.assertEqual(tee.outfile.getvalue(), expected_output_str)
 

@@ -13,7 +13,6 @@ import os
 import io
 import re
 import argparse
-from contextlib import closing
 
 try:
     from blessed import Terminal
@@ -100,7 +99,6 @@ def regex_join(*regexes):
 class Tee(object):
     def __init__(self):
         self._last_status = ''
-        self._ditto_files = []
         self._strip = False
         self._outfile = codecs.getwriter('utf-8')(sys.stdout, errors='replace')
         self._regexes = []
@@ -194,8 +192,6 @@ class Tee(object):
         self._display_level = end_level
 
     def put_line(self, line):
-        for f in self._ditto_files:
-            fwrite(f, line)
         if self._heading_regex and re.search(self._heading_regex, line):
             self.clear_context()
         for level, regex in enumerate(self._regexes):
@@ -206,29 +202,8 @@ class Tee(object):
             self.show_context()
             self.write(line)
 
-    def add_ditto_file(self, ditto_file):
-        self._ditto_files.append(ditto_file)
-
-    def open_ditto_file(self, ditto_file, append=False, encoding='utf-8'):
-        mode = 'a' if append else 'w'
-        mode += 't'
-        self.add_ditto_file(io.open(ditto_file, mode, encoding=encoding))
-
-    def close_ditto_files(self):
-        while self._ditto_files:
-            self._ditto_files.pop().close()
-
     def close(self):
         self.erase_status()
-        self.close_ditto_files()
-
-    def drain(self, infile):
-        while True:
-            line = infile.readline()
-            if line:
-                self.put_line(line)
-            else:
-                break
 
 DEFAULT_LEVEL = 2
 """Default LEVEL value for --regex switch."""
@@ -319,12 +294,23 @@ def inner_main():
     tee.width = args.width
     tee.outfile = codecs.getwriter(args.encoding)(sys.stdout, errors='replace')
     infile = codecs.getreader(args.encoding)(sys.stdin, errors='replace')
-    with closing(tee):
+    ditto_files = []
+    mode = ('a' if args.append else 'w') + 'b'
+    try:
         for name in args.files:
-            tee.open_ditto_file(name,
-                                append=args.append,
-                                encoding=args.encoding)
-        tee.drain(infile)
+            ditto_files.append(io.open(name, mode))
+        while True:
+            line = infile.readline()
+            if line:
+                for f in ditto_files:
+                    fwrite(f, line)
+                tee.put_line(line)
+            else:
+                break
+    finally:
+        tee.close()
+        for f in ditto_files:
+            f.close()
 
 
 def main():
