@@ -7,7 +7,22 @@ from builtins import (ascii, bytes, chr, dict, filter, hex, input,
                       int, map, next, oct, open, pow, range, round,
                       str, super, zip)
 
-__version__ = '0.2.0'
+import codecs
+import sys
+import os
+import io
+import re
+import argparse
+from contextlib import closing
+
+try:
+    from blessed import Terminal
+    _term = Terminal()
+except ImportError:
+    _term = None
+
+
+__version__ = '0.3.0'
 
 description = """\
 Enhanced "tee" function.
@@ -27,21 +42,6 @@ epilog = """\
 - Multiple regular expressions of the same type will be joined with the logical
   "OR" operator, '|'.
 """
-
-import codecs
-import sys
-import os
-import io
-import re
-import argparse
-from contextlib import closing
-
-
-try:
-    from blessed import Terminal
-    _term = Terminal()
-except ImportError:
-    _term = None
 
 
 _term_width = 80
