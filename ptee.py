@@ -268,7 +268,7 @@ def inner_main():
                         dest='level_regexes',
                         nargs=2,
                         default=[],
-                        metavar='LEVEL REGEX',
+                        metavar=('LEVEL', 'REGEX'),
                         help="""append "CONTEXT" regular expression for given
                         LEVEL; zero is highest-order level""")
     parser.add_argument('--heading-regex',
