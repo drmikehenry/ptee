@@ -329,7 +329,7 @@ def inner_main():
     progress.outfile = stdout_writer(args.encoding)
 
     infile = std_binfile(sys.stdin)
-    byte_iter = iter(functools.partial(infile.read, 1), '')
+    byte_iter = iter(functools.partial(infile.read, 1), bytes(b''))
     decoder = codecs.getincrementaldecoder(args.encoding)()
 
     ditto_files = []
