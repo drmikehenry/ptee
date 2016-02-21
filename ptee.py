@@ -352,8 +352,7 @@ def main():
     try:
         inner_main()
     except KeyboardInterrupt:
-        print('\nptee: keyboard interrupt', file=sys.stderr)
-        sys.exit(1)
+        pass
 
 if __name__ == '__main__':
     main()
