@@ -13,6 +13,7 @@ import os
 import io
 import re
 import argparse
+import functools
 
 try:
     from blessed import Terminal
@@ -76,6 +77,19 @@ def track_terminal_width():
     signal.siginterrupt(signum, False)
 
 
+def std_binfile(std_file):
+    """Return binary-mode equivalent for std_file (stdin or stdout)."""
+    # If .buffer exists, it will be the Python 3 underlying buffer object
+    # which is in binary; if not, then it's Python 2 where stdin/stdout
+    # are already in binary mode.
+    return getattr(std_file, 'buffer', std_file)
+
+
+def stdout_writer(encoding):
+    return codecs.getwriter(encoding)(std_binfile(sys.stdout),
+                                      errors='replace')
+
+
 def fwrite(file, string):
     """Flushed write to file."""
 
@@ -100,7 +114,7 @@ class Progress(object):
     def __init__(self):
         self._last_status = ''
         self._strip = False
-        self._outfile = codecs.getwriter('utf-8')(sys.stdout, errors='replace')
+        self._outfile = stdout_writer('utf-8')
         self._regexes = []
         self._heading_regex = ''
         self._heading = ''
@@ -146,16 +160,17 @@ class Progress(object):
         self._erase_status()
 
     def write(self, text):
-        self._text_parts.append(text)
-        if '\n' in text:
-            joined_text = ''.join(self._text_parts)
-            self._text_parts = []
-            for line in joined_text.splitlines(True):
-                if line.endswith('\n'):
-                    self._write_line(line)
-                else:
-                    # Only the final line may lack a '\n'.
-                    self._text_parts.append(line)
+        if text:
+            self._text_parts.append(text)
+            if '\n' in text:
+                joined_text = ''.join(self._text_parts)
+                self._text_parts = []
+                for line in joined_text.splitlines(True):
+                    if line.endswith('\n'):
+                        self._write_line(line)
+                    else:
+                        # Only the final line may lack a '\n'.
+                        self._text_parts.append(line)
 
     def _raw_write(self, string):
         fwrite(self.outfile, string)
@@ -294,6 +309,7 @@ def inner_main():
 
     args = parser.parse_args()
     track_terminal_width()
+
     progress = Progress()
     for level, regex in args.level_regexes:
         try:
@@ -310,22 +326,22 @@ def inner_main():
     else:
         progress.strip = args.strip
     progress.width = args.width
-    progress.outfile = codecs.getwriter(args.encoding)(sys.stdout,
-                                                       errors='replace')
-    infile = codecs.getreader(args.encoding)(sys.stdin, errors='replace')
+    progress.outfile = stdout_writer(args.encoding)
+
+    infile = std_binfile(sys.stdin)
+    byte_iter = iter(functools.partial(infile.read, 1), '')
+    decoder = codecs.getincrementaldecoder(args.encoding)()
+
     ditto_files = []
     mode = ('a' if args.append else 'w') + 'b'
     try:
         for name in args.files:
             ditto_files.append(io.open(name, mode))
-        while True:
-            line = infile.readline()
-            if line:
-                for f in ditto_files:
-                    fwrite(f, line)
-                progress.write(line)
-            else:
-                break
+        for in_bytes in byte_iter:
+            for f in ditto_files:
+                fwrite(f, in_bytes)
+            progress.write(decoder.decode(in_bytes))
+        progress.write(decoder.decode(bytes(b''), final=True))
     finally:
         progress.close()
         for f in ditto_files:
