@@ -107,6 +107,7 @@ class Progress(object):
         self._context_lines = []
         self._display_level = 0
         self._width = 0
+        self._text_parts = []
 
     @property
     def outfile(self):
@@ -141,10 +142,20 @@ class Progress(object):
         self._heading_regex = regex_join(self._heading_regex, regex)
 
     def close(self):
+        self._flush()
         self._erase_status()
 
-    def put_line(self, line):
-        self._write_line(line)
+    def write(self, text):
+        self._text_parts.append(text)
+        if '\n' in text:
+            joined_text = ''.join(self._text_parts)
+            self._text_parts = []
+            for line in joined_text.splitlines(True):
+                if line.endswith('\n'):
+                    self._write_line(line)
+                else:
+                    # Only the final line may lack a '\n'.
+                    self._text_parts.append(line)
 
     def _raw_write(self, string):
         fwrite(self.outfile, string)
@@ -204,6 +215,13 @@ class Progress(object):
         else:
             self._show_context()
             self._raw_write(line)
+
+    def _flush(self):
+        text = ''.join(self._text_parts)
+        self._text_parts = []
+        if text:
+            self._write_line(text)
+
 
 DEFAULT_LEVEL = 2
 """Default LEVEL value for --regex switch."""
@@ -305,7 +323,7 @@ def inner_main():
             if line:
                 for f in ditto_files:
                     fwrite(f, line)
-                progress.put_line(line)
+                progress.write(line)
             else:
                 break
     finally:

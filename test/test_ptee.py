@@ -23,17 +23,20 @@ class TestTee(unittest.TestCase):
         s = s.replace('\a\n', '\r')
         return s
 
-    def check(self, input_str, expected_output_str):
+    def raw_check(self, raw_input_strings, raw_expected_output_str):
         progress = ptee.Progress()
         progress.append_level_regex(1, r'^status')
         progress.append_heading_regex(r'^heading')
         progress.outfile = StringIO()
-        input_str = self.fixup_str(input_str)
         with closing(progress):
-            for line in StringIO(input_str):
-                progress.put_line(line)
-        expected_output_str = self.fixup_str(expected_output_str)
-        self.assertEqual(progress.outfile.getvalue(), expected_output_str)
+            for input_str in raw_input_strings:
+                for line in StringIO(input_str):
+                    progress.write(line)
+        self.assertEqual(progress.outfile.getvalue(), raw_expected_output_str)
+
+    def check(self, input_str, expected_output_str):
+        self.raw_check([self.fixup_str(input_str)],
+                       self.fixup_str(expected_output_str))
 
     def test_empty(self):
         self.check('',
@@ -123,6 +126,21 @@ class TestTee(unittest.TestCase):
                    status #2
                    line 3
                    """)
+
+    def test_parts(self):
+        input_str = self.fixup_str(
+            """
+            status #1
+            status #2
+            """)
+        output_str = self.fixup_str(
+            """
+            status #1\a
+            status #2\a
+                     \a
+            """)
+        parts = [input_str[i:i+3] for i in range(0, len(input_str), 3)]
+        self.raw_check(parts, output_str)
 
 
 if __name__ == '__main__':
