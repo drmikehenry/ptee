@@ -123,12 +123,14 @@ class Progress(object):
         self._outfile = stdout_writer('utf-8')
         self._regexes = []
         self._heading_regex = ''
+        self._count_skip_regexes = []
         self._heading = ''
         self._context_lines = []
         self._display_level = 0
         self._width = 0
         self._text_parts = []
         self._within_partial_line = False
+        self._num_lines_to_skip = 0
 
     @property
     def outfile(self):
@@ -161,6 +163,9 @@ class Progress(object):
 
     def append_heading_regex(self, regex):
         self._heading_regex = regex_join(self._heading_regex, regex)
+
+    def append_count_skip_regex(self, count, skip_regex):
+        self._count_skip_regexes.append((count, skip_regex))
 
     def close(self):
         self.flush()
@@ -227,6 +232,22 @@ class Progress(object):
             self._raw_write(self._context_lines[level])
         self._display_level = end_level
 
+    def _write_in_context(self, s):
+            self._show_context()
+            self._raw_write(s)
+
+    def _write_complete_line(self, line):
+        """Write a complete line (exactly one newline; must be at the end).
+        """
+        if self._heading_regex and re.search(self._heading_regex, line):
+            self._clear_context()
+        for level, regex in enumerate(self._regexes):
+            if regex and re.search(regex, line):
+                self._set_context(level, line)
+                break
+        else:
+            self._write_in_context(line)
+
     def _write_line(self, line):
         """Write a single line (with or without a newline at the end).
 
@@ -235,19 +256,19 @@ class Progress(object):
         """
         has_newline = line.endswith('\n')
         is_complete_line = has_newline and not self._within_partial_line
-        written = False
         if is_complete_line:
-            if self._heading_regex and re.search(self._heading_regex, line):
-                self._clear_context()
-            for level, regex in enumerate(self._regexes):
-                if regex and re.search(regex, line):
-                    self._set_context(level, line)
-                    written = True
-                    break
-        if not written:
-            self._show_context()
-            self._raw_write(line)
-        self._within_partial_line = not has_newline
+            if self._num_lines_to_skip == 0:
+                for count, regex in self._count_skip_regexes:
+                    if regex and re.search(regex, line):
+                        self._num_lines_to_skip = count
+                        break
+            if self._num_lines_to_skip > 0:
+                self._num_lines_to_skip -= 1
+            else:
+                self._write_complete_line(line)
+        else:
+            self._write_in_context(line)
+            self._within_partial_line = not has_newline
 
     def _write_text_parts(self, flush=False):
         if self._text_parts:
@@ -301,6 +322,15 @@ def inner_main():
                         default=[],
                         metavar='HEADING_REGEX',
                         help='append a "HEADING" regular expression')
+    parser.add_argument('--skip-regex',
+                        action='append',
+                        dest='count_skip_regexes',
+                        nargs=2,
+                        default=[],
+                        metavar=('COUNT', 'SKIP_REGEX'),
+                        help="""append a COUNT and a "SKIP" regular expression;
+                        when the input line matches SKIP_REGEX, COUNT lines will
+                        be skipped (COUNT includes the matching line)""")
     parser.add_argument('--strip',
                         action='store_true',
                         dest='strip',
@@ -351,6 +381,14 @@ def inner_main():
         progress.append_level_regex(DEFAULT_LEVEL, regex)
     for regex in args.heading_regexes:
         progress.append_heading_regex(regex)
+    for count_str, regex in args.count_skip_regexes:
+        try:
+            count = int(count_str)
+            if count <= 0:
+                raise ValueError()
+        except ValueError:
+            parser.error('argument --skip-regex: invalid COUNT %s' % count_str)
+        progress.append_count_skip_regex(count, regex)
     if args.strip is None:
         progress.strip = not os.isatty(sys.stdout.fileno())
     else:

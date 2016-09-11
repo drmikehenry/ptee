@@ -185,6 +185,30 @@ Leading to this output::
   file2.c:1:12: warning: ‘x’ defined but not used [-Wunused-variable]
   ------------------------------ x86_64 ---------------------------
 
+Skipping lines
+==============
+
+Sometimes input contains lines that should be skipped entirely, rather than
+being treated as status lines.  An example might include spurious compiler
+warnings that can't easily be suppressed.  The switch
+``--skip-regex COUNT SKIP_REGEX`` provides a way to skip one or more lines that
+match a given pattern.  For example, given the following input::
+
+  [compile] file1.o
+  system-header.h:999:18: warning: this is a spurious message
+  in argument 2 of function `badly_written(x, y)`
+  --------------------------------------------^
+  [compile] file2.o
+
+To skip the three lines of spurious warning, use this invocation::
+
+  ptee --skip-regex 3 system-header.h:999:18:
+
+This effectively transforms the input to::
+
+  [compile] file1.o
+  [compile] file2.o
+
 Stripping overwritten lines
 ===========================
 
