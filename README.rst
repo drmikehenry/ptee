@@ -203,6 +203,18 @@ this::
 
   ./buildall 2>&1 | ptee [switches] --no-strip | perl -0777 -pe 's/\r/\\r\n/g'
 
+Partial lines
+=============
+
+In general, ptee processes whole lines of text.  But sometimes the input stream
+may pause after a partial line, such as when a program displays a prompt to the
+user and pauses for a response.  To allow the user to see such partial lines,
+ptee by default will wait an amount of time controlled by the
+--partial-line-timeout switch; if the input stream stalls for longer than this
+amount of time, the partial input will be displayed without further processing,
+and all future input up to the next newline will be immediately displayed.
+Setting the timeout value to zero disables the timeout feature.
+
 Text encoding option
 ====================
 

@@ -13,7 +13,8 @@ import os
 import io
 import re
 import argparse
-import functools
+import queue
+import threading
 
 try:
     from blessed import Terminal
@@ -22,7 +23,7 @@ except ImportError:
     _term = None
 
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
 description = """\
 Enhanced "tee" function.
@@ -41,6 +42,11 @@ epilog = """\
   default, --strip is active when stdout is not a TTY.
 - Multiple regular expressions of the same type will be joined with the logical
   "OR" operator, '|'.
+- ptee waits up to --partial-line-timeout seconds for a partial line to
+  completely arrive; on timeout, the partial line will be processed immediately
+  along with all future input up to the next newline.  Lines interrupted by a
+  timeout are never compared to any REGEX (i.e., they are REGULAR lines).  Use
+  a timeout value of 0 to disable the timeout feature.
 """
 
 
@@ -122,6 +128,7 @@ class Progress(object):
         self._display_level = 0
         self._width = 0
         self._text_parts = []
+        self._within_partial_line = False
 
     @property
     def outfile(self):
@@ -156,21 +163,21 @@ class Progress(object):
         self._heading_regex = regex_join(self._heading_regex, regex)
 
     def close(self):
-        self._flush()
+        self.flush()
         self._erase_status()
+
+    @property
+    def have_unwritten_data(self):
+        return len(self._text_parts) != 0
+
+    def flush(self):
+        self._write_text_parts(flush=True)
 
     def write(self, text):
         if text:
             self._text_parts.append(text)
-            if '\n' in text:
-                joined_text = ''.join(self._text_parts)
-                self._text_parts = []
-                for line in joined_text.splitlines(True):
-                    if line.endswith('\n'):
-                        self._write_line(line)
-                    else:
-                        # Only the final line may lack a '\n'.
-                        self._text_parts.append(line)
+            if self._within_partial_line or '\n' in text:
+                self._write_text_parts()
 
     def _raw_write(self, string):
         fwrite(self.outfile, string)
@@ -221,21 +228,38 @@ class Progress(object):
         self._display_level = end_level
 
     def _write_line(self, line):
-        if self._heading_regex and re.search(self._heading_regex, line):
-            self._clear_context()
-        for level, regex in enumerate(self._regexes):
-            if regex and re.search(regex, line):
-                self._set_context(level, line)
-                break
-        else:
+        """Write a single line (with or without a newline at the end).
+
+        line contains at most one newline; if present, it must be at the end.
+        line must not be the empty string.
+        """
+        has_newline = line.endswith('\n')
+        is_complete_line = has_newline and not self._within_partial_line
+        written = False
+        if is_complete_line:
+            if self._heading_regex and re.search(self._heading_regex, line):
+                self._clear_context()
+            for level, regex in enumerate(self._regexes):
+                if regex and re.search(regex, line):
+                    self._set_context(level, line)
+                    written = True
+                    break
+        if not written:
             self._show_context()
             self._raw_write(line)
+        self._within_partial_line = not has_newline
 
-    def _flush(self):
-        text = ''.join(self._text_parts)
-        self._text_parts = []
-        if text:
-            self._write_line(text)
+    def _write_text_parts(self, flush=False):
+        if self._text_parts:
+            joined_text = ''.join(self._text_parts)
+            self._text_parts = []
+            for line in joined_text.splitlines(True):
+                if flush or self._within_partial_line or line.endswith('\n'):
+                    self._write_line(line)
+                else:
+                    # Only the final line may lack a '\n'.
+                    # Save this partial line for later.
+                    self._text_parts.append(line)
 
 
 DEFAULT_LEVEL = 2
@@ -306,6 +330,12 @@ def inner_main():
                         metavar='OUTFILE',
                         help="""an unmodified copy of stdin is written to each
                         output file""")
+    parser.add_argument('--partial-line-timeout',
+                        type=float,
+                        dest='partial_line_timeout',
+                        default=0.25,
+                        help="""seconds to wait for remainder of line to arrive
+                        before flushing (defaults to 0.25; 0 to disable)""")
 
     args = parser.parse_args()
     track_terminal_width()
@@ -327,25 +357,53 @@ def inner_main():
         progress.strip = args.strip
     progress.width = args.width
     progress.outfile = stdout_writer(args.encoding)
-
-    infile = std_binfile(sys.stdin)
-    byte_iter = iter(functools.partial(infile.read, 1), bytes(b''))
     decoder = codecs.getincrementaldecoder(args.encoding)()
-
     ditto_files = []
     mode = ('a' if args.append else 'w') + 'b'
+
+    def read_into_queue(input_io, input_queue):
+        block_size = 8192
+        while True:
+            raw_bytes = input_io.read(block_size)
+            input_queue.put(raw_bytes)
+            if not raw_bytes:
+                break
+
+    stdin = io.open(0, 'rb', closefd=False, buffering=0)
+    stdin_queue = queue.Queue(10)
+    t = threading.Thread(target=read_into_queue, args=(stdin, stdin_queue))
+    t.daemon = True
+    t.start()
+
     try:
         for name in args.files:
             ditto_files.append(io.open(name, mode))
-        for in_bytes in byte_iter:
-            for f in ditto_files:
-                fwrite(f, in_bytes)
-            progress.write(decoder.decode(in_bytes))
+
+        while True:
+            if progress.have_unwritten_data:
+                timeout = args.partial_line_timeout
+                if timeout <= 0.0:
+                    timeout = None
+            else:
+                timeout = None
+            try:
+                raw_bytes = stdin_queue.get(timeout=timeout)
+            except queue.Empty:
+                progress.flush()
+            else:
+                if not raw_bytes:
+                    break
+                for f in ditto_files:
+                    fwrite(f, raw_bytes)
+                progress.write(decoder.decode(raw_bytes))
+
         progress.write(decoder.decode(bytes(b''), final=True))
+
     finally:
         progress.close()
         for f in ditto_files:
             f.close()
+        t.join()
 
 
 def main():
