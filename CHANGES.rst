@@ -2,6 +2,11 @@
 History
 *******
 
+Version 0.3.2
+=============
+
+- Change default --partial-line-timeout to 2.0.
+
 Version 0.3.1
 =============
 

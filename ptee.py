@@ -23,7 +23,7 @@ except ImportError:
     _term = None
 
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 
 description = """\
 Enhanced "tee" function.
@@ -329,8 +329,8 @@ def inner_main():
                         default=[],
                         metavar=('COUNT', 'SKIP_REGEX'),
                         help="""append a COUNT and a "SKIP" regular expression;
-                        when the input line matches SKIP_REGEX, COUNT lines will
-                        be skipped (COUNT includes the matching line)""")
+                        when the input line matches SKIP_REGEX, COUNT lines
+                        will be skipped (COUNT includes the matching line)""")
     parser.add_argument('--strip',
                         action='store_true',
                         dest='strip',
@@ -363,9 +363,9 @@ def inner_main():
     parser.add_argument('--partial-line-timeout',
                         type=float,
                         dest='partial_line_timeout',
-                        default=0.25,
+                        default=2.0,
                         help="""seconds to wait for remainder of line to arrive
-                        before flushing (defaults to 0.25; 0 to disable)""")
+                        before flushing (defaults to 2.0; 0 to disable)""")
 
     args = parser.parse_args()
     track_terminal_width()
