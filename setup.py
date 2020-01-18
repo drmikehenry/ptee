@@ -2,20 +2,20 @@
 # coding=utf-8
 
 from setuptools import setup, find_packages
-import os
 
 NAME = "ptee"
-
-
-def open_file(name):
-    return open(os.path.join(os.path.dirname(__file__), name))
-
 
 __version__ = None
 for line in open("src/{}.py".format(NAME), encoding="utf-8"):
     if line.startswith("__version__"):
         __version__ = line.split("=")[1].strip().replace('"', "")
         break
+
+with open("README.rst", encoding="utf-8") as f:
+    long_description = f.read()
+
+with open("requirements.txt", encoding="utf-8") as f:
+    requirements = f.read()
 
 setup(
     name=NAME,
@@ -24,13 +24,13 @@ setup(
     package_dir={"": "src"},
     py_modules=[NAME],
     python_requires=">=3.5",
-    install_requires=["blessed",],
-    entry_points={"console_scripts": ["ptee=ptee:main",],},
+    install_requires=requirements,
+    entry_points={"console_scripts": ["ptee=ptee:main"]},
     description=(
         '"Progress tee", an enhanced "tee" program with in-place '
         + 'overwriting of "status".'
     ),
-    long_description=open_file("README.rst").read(),
+    long_description=long_description,
     keywords="progress tee in-place overwriting status",
     url="https://github.com/drmikehenry/ptee",
     author="Michael Henry",
