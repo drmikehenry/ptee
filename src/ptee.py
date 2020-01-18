@@ -78,18 +78,9 @@ def track_terminal_width():
     signal.siginterrupt(signum, False)
 
 
-def std_binfile(std_file):
-    """Return binary-mode equivalent for std_file (stdin or stdout)."""
-    # If .buffer exists, it will be the Python 3 underlying buffer object
-    # which is in binary; if not, then it's Python 2 where stdin/stdout
-    # are already in binary mode.
-    return getattr(std_file, "buffer", std_file)
-
-
 def stdout_writer(encoding):
-    return codecs.getwriter(encoding)(
-        std_binfile(sys.stdout), errors="replace"
-    )
+    # Wrap a codec around stdout's underlying binary buffer.
+    return codecs.getwriter(encoding)(sys.stdout.buffer, errors="replace")
 
 
 def fwrite(file, string):
