@@ -274,7 +274,7 @@ DEFAULT_LEVEL = 2
 """Default LEVEL value for --regex switch."""
 
 
-def inner_main():
+def make_parser():
     parser = argparse.ArgumentParser(
         description=description,
         epilog=epilog,
@@ -377,10 +377,10 @@ def inner_main():
         help="""seconds to wait for remainder of line to arrive
                         before flushing (defaults to 2.0; 0 to disable)""",
     )
+    return parser
 
-    args = parser.parse_args()
-    track_terminal_width()
 
+def make_progress(parser, args):
     progress = Progress()
     for level, regex in args.level_regexes:
         try:
@@ -406,17 +406,27 @@ def inner_main():
         progress.strip = args.strip
     progress.width = args.width
     progress.outfile = stdout_writer(args.encoding)
+    return progress
+
+
+def read_into_queue(input_io, input_queue):
+    block_size = 8192
+    while True:
+        raw_bytes = input_io.read(block_size)
+        input_queue.put(raw_bytes)
+        if not raw_bytes:
+            break
+
+
+def inner_main():
+    parser = make_parser()
+    args = parser.parse_args()
+    track_terminal_width()
+    progress = make_progress(parser, args)
+
     decoder = codecs.getincrementaldecoder(args.encoding)()
     ditto_files = []
     mode = ("a" if args.append else "w") + "b"
-
-    def read_into_queue(input_io, input_queue):
-        block_size = 8192
-        while True:
-            raw_bytes = input_io.read(block_size)
-            input_queue.put(raw_bytes)
-            if not raw_bytes:
-                break
 
     stdin = io.open(0, "rb", closefd=False, buffering=0)
     stdin_queue = queue.Queue(10)
