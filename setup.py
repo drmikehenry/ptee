@@ -11,7 +11,7 @@ def open_file(name):
 
 
 __version__ = None
-for line in open_file(NAME + '.py'):
+for line in open_file('src/{}.py'.format(NAME)):
     if line.startswith('__version__'):
         exec(line)
         break
@@ -19,7 +19,8 @@ for line in open_file(NAME + '.py'):
 setup(
     name=NAME,
     version=__version__,
-    packages=find_packages(),
+    packages=find_packages('src'),
+    package_dir={'': 'src'},
     py_modules=[NAME],
     install_requires=[
         'future',
