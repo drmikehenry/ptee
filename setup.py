@@ -12,9 +12,9 @@ def open_file(name):
 
 
 __version__ = None
-for line in open_file("src/{}.py".format(NAME)):
+for line in open("src/{}.py".format(NAME), encoding="utf-8"):
     if line.startswith("__version__"):
-        exec(line)
+        __version__ = line.split("=")[1].strip().replace('"', "")
         break
 
 setup(
