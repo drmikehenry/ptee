@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # coding=utf-8
 
-import codecs
-import sys
-import os
-import io
-import re
 import argparse
+import codecs
+import io
+import os
 import queue
+import re
+import sys
 import threading
 
 try:

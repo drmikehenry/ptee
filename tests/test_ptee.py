@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # coding=utf-8
 
-import unittest
-import ptee
-import textwrap
-from io import StringIO
 from contextlib import closing
+from io import StringIO
+import textwrap
+import unittest
+
+import ptee
 
 
 class TestTee(unittest.TestCase):
