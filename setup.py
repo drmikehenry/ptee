@@ -22,10 +22,8 @@ setup(
     packages=find_packages('src'),
     package_dir={'': 'src'},
     py_modules=[NAME],
-    install_requires=[
-        'future',
-        'blessed',
-    ],
+    python_requires='>=3.5',
+    install_requires=['future'],
     entry_points={
         'console_scripts': [
             'ptee=ptee:main',
@@ -46,12 +44,11 @@ setup(
         'Topic :: Utilities',
         'Environment :: Console',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
 )
