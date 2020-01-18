@@ -11,12 +11,13 @@ import threading
 
 try:
     from blessed import Terminal
+
     _term = Terminal()
 except ImportError:
     _term = None
 
 
-__version__ = '0.4.0'
+__version__ = "0.4.0"
 
 description = """\
 Enhanced "tee" function.
@@ -81,12 +82,13 @@ def std_binfile(std_file):
     # If .buffer exists, it will be the Python 3 underlying buffer object
     # which is in binary; if not, then it's Python 2 where stdin/stdout
     # are already in binary mode.
-    return getattr(std_file, 'buffer', std_file)
+    return getattr(std_file, "buffer", std_file)
 
 
 def stdout_writer(encoding):
-    return codecs.getwriter(encoding)(std_binfile(sys.stdout),
-                                      errors='replace')
+    return codecs.getwriter(encoding)(
+        std_binfile(sys.stdout), errors="replace"
+    )
 
 
 def fwrite(file, string):
@@ -105,19 +107,19 @@ def regex_join(*regexes):
     Return:
         Joined regular expression string.
     """
-    regex = '|'.join([r for r in regexes if r])
+    regex = "|".join([r for r in regexes if r])
     return regex
 
 
 class Progress(object):
     def __init__(self):
-        self._last_status = ''
+        self._last_status = ""
         self._strip = False
-        self._outfile = stdout_writer('utf-8')
+        self._outfile = stdout_writer("utf-8")
         self._regexes = []
-        self._heading_regex = ''
+        self._heading_regex = ""
         self._count_skip_regexes = []
-        self._heading = ''
+        self._heading = ""
         self._context_lines = []
         self._display_level = 0
         self._width = 0
@@ -151,7 +153,7 @@ class Progress(object):
 
     def append_level_regex(self, level, regex):
         while level >= len(self._regexes):
-            self._regexes.append(r'')
+            self._regexes.append(r"")
         self._regexes[level] = regex_join(self._regexes[level], regex)
 
     def append_heading_regex(self, regex):
@@ -174,7 +176,7 @@ class Progress(object):
     def write(self, text):
         if text:
             self._text_parts.append(text)
-            if self._within_partial_line or '\n' in text:
+            if self._within_partial_line or "\n" in text:
                 self._write_text_parts()
 
     def _raw_write(self, string):
@@ -187,7 +189,7 @@ class Progress(object):
             if width and len(status) > width:
                 min_width = 10
                 if len(status) >= min_width:
-                    ellipsis = ' ... '
+                    ellipsis = " ... "
                     room = width - len(ellipsis)
                     pre_room = (room * 3) // 4
                     post_room = room - pre_room
@@ -195,13 +197,13 @@ class Progress(object):
                 status = status[:width]
             padded_status = status.ljust(len(self._last_status))
             if padded_status:
-                self._raw_write(padded_status + '\r')
+                self._raw_write(padded_status + "\r")
             self._last_status = status
 
     def _erase_status(self):
         if self._last_status:
-            self._raw_write(' ' * len(self._last_status) + '\r')
-            self._last_status = ''
+            self._raw_write(" " * len(self._last_status) + "\r")
+            self._last_status = ""
 
     def _clear_context(self):
         self._context_lines = []
@@ -210,13 +212,13 @@ class Progress(object):
     def _set_context(self, level, context):
         if self._display_level > level:
             self._display_level = level
-        del self._context_lines[level + 1:]
+        del self._context_lines[level + 1 :]
         while level >= len(self._context_lines):
-            self._context_lines.append('')
+            self._context_lines.append("")
         self._context_lines[level] = context
         lines = [s.rstrip() for s in self._context_lines]
         lines = [line for line in lines if line]
-        self._write_status('  '.join(lines))
+        self._write_status("  ".join(lines))
 
     def _show_context(self):
         self._erase_status()
@@ -226,8 +228,8 @@ class Progress(object):
         self._display_level = end_level
 
     def _write_in_context(self, s):
-            self._show_context()
-            self._raw_write(s)
+        self._show_context()
+        self._raw_write(s)
 
     def _write_complete_line(self, line):
         """Write a complete line (exactly one newline; must be at the end).
@@ -247,7 +249,7 @@ class Progress(object):
         line contains at most one newline; if present, it must be at the end.
         line must not be the empty string.
         """
-        has_newline = line.endswith('\n')
+        has_newline = line.endswith("\n")
         is_complete_line = has_newline and not self._within_partial_line
         if is_complete_line:
             if self._num_lines_to_skip == 0:
@@ -265,10 +267,10 @@ class Progress(object):
 
     def _write_text_parts(self, flush=False):
         if self._text_parts:
-            joined_text = ''.join(self._text_parts)
+            joined_text = "".join(self._text_parts)
             self._text_parts = []
             for line in joined_text.splitlines(True):
-                if flush or self._within_partial_line or line.endswith('\n'):
+                if flush or self._within_partial_line or line.endswith("\n"):
                     self._write_line(line)
                 else:
                     # Only the final line may lack a '\n'.
@@ -284,81 +286,105 @@ def inner_main():
     parser = argparse.ArgumentParser(
         description=description,
         epilog=epilog,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--version',
-                        action='version',
-                        version='%(prog)s ' + __version__)
-    parser.add_argument('-a',
-                        '--append',
-                        action='store_true',
-                        dest='append',
-                        help='append to given files, do not overwrite')
-    parser.add_argument('--regex',
-                        action='append',
-                        dest='regexes',
-                        default=[],
-                        metavar='REGEX',
-                        help="""append "CONTEXT" regular expression for
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--version", action="version", version="%(prog)s " + __version__
+    )
+    parser.add_argument(
+        "-a",
+        "--append",
+        action="store_true",
+        dest="append",
+        help="append to given files, do not overwrite",
+    )
+    parser.add_argument(
+        "--regex",
+        action="append",
+        dest="regexes",
+        default=[],
+        metavar="REGEX",
+        help="""append "CONTEXT" regular expression for
                         the default LEVEL; equivalent to
-                        ``--level-regex %s REGEX``""" % DEFAULT_LEVEL)
-    parser.add_argument('--level-regex',
-                        action='append',
-                        dest='level_regexes',
-                        nargs=2,
-                        default=[],
-                        metavar=('LEVEL', 'REGEX'),
-                        help="""append "CONTEXT" regular expression for given
-                        LEVEL; zero is highest-order level""")
-    parser.add_argument('--heading-regex',
-                        action='append',
-                        dest='heading_regexes',
-                        default=[],
-                        metavar='HEADING_REGEX',
-                        help='append a "HEADING" regular expression')
-    parser.add_argument('--skip-regex',
-                        action='append',
-                        dest='count_skip_regexes',
-                        nargs=2,
-                        default=[],
-                        metavar=('COUNT', 'SKIP_REGEX'),
-                        help="""append a COUNT and a "SKIP" regular expression;
+                        ``--level-regex %s REGEX``"""
+        % DEFAULT_LEVEL,
+    )
+    parser.add_argument(
+        "--level-regex",
+        action="append",
+        dest="level_regexes",
+        nargs=2,
+        default=[],
+        metavar=("LEVEL", "REGEX"),
+        help="""append "CONTEXT" regular expression for given
+                        LEVEL; zero is highest-order level""",
+    )
+    parser.add_argument(
+        "--heading-regex",
+        action="append",
+        dest="heading_regexes",
+        default=[],
+        metavar="HEADING_REGEX",
+        help='append a "HEADING" regular expression',
+    )
+    parser.add_argument(
+        "--skip-regex",
+        action="append",
+        dest="count_skip_regexes",
+        nargs=2,
+        default=[],
+        metavar=("COUNT", "SKIP_REGEX"),
+        help="""append a COUNT and a "SKIP" regular expression;
                         when the input line matches SKIP_REGEX, COUNT lines
-                        will be skipped (COUNT includes the matching line)""")
-    parser.add_argument('--strip',
-                        action='store_true',
-                        dest='strip',
-                        default=None,
-                        help="""remove any status that gets overwritten by
+                        will be skipped (COUNT includes the matching line)""",
+    )
+    parser.add_argument(
+        "--strip",
+        action="store_true",
+        dest="strip",
+        default=None,
+        help="""remove any status that gets overwritten by
                         subsequent lines, rather than display and overwrite it
                         in-place; defaults to --no-strip when stdout is a TTY
                         and --strip otherwise
-                        """)
-    parser.add_argument('--no-strip',
-                        action='store_false',
-                        dest='strip',
-                        help="""turn off --strip option""")
-    parser.add_argument('--width',
-                        type=int,
-                        dest='width',
-                        default=0,
-                        help="""width of terminal for truncating status lines
-                        (0 ==> detect terminal width automatically)""")
-    parser.add_argument('--encoding',
-                        dest='encoding',
-                        default='utf-8',
-                        help="""encoding to use for all files (defaults to
-                        utf-8)""")
-    parser.add_argument('files',
-                        nargs='*',
-                        metavar='OUTFILE',
-                        help="""an unmodified copy of stdin is written to each
-                        output file""")
-    parser.add_argument('--partial-line-timeout',
-                        type=float,
-                        dest='partial_line_timeout',
-                        default=2.0,
-                        help="""seconds to wait for remainder of line to arrive
-                        before flushing (defaults to 2.0; 0 to disable)""")
+                        """,
+    )
+    parser.add_argument(
+        "--no-strip",
+        action="store_false",
+        dest="strip",
+        help="""turn off --strip option""",
+    )
+    parser.add_argument(
+        "--width",
+        type=int,
+        dest="width",
+        default=0,
+        help="""width of terminal for truncating status lines
+                        (0 ==> detect terminal width automatically)""",
+    )
+    parser.add_argument(
+        "--encoding",
+        dest="encoding",
+        default="utf-8",
+        help="""encoding to use for all files (defaults to
+                        utf-8)""",
+    )
+    parser.add_argument(
+        "files",
+        nargs="*",
+        metavar="OUTFILE",
+        help="""an unmodified copy of stdin is written to each
+                        output file""",
+    )
+    parser.add_argument(
+        "--partial-line-timeout",
+        type=float,
+        dest="partial_line_timeout",
+        default=2.0,
+        help="""seconds to wait for remainder of line to arrive
+                        before flushing (defaults to 2.0; 0 to disable)""",
+    )
 
     args = parser.parse_args()
     track_terminal_width()
@@ -368,7 +394,7 @@ def inner_main():
         try:
             level = int(level)
         except ValueError:
-            parser.error('invalid LEVEL %s' % repr(level))
+            parser.error("invalid LEVEL %s" % repr(level))
         progress.append_level_regex(int(level), regex)
     for regex in args.regexes:
         progress.append_level_regex(DEFAULT_LEVEL, regex)
@@ -380,7 +406,7 @@ def inner_main():
             if count <= 0:
                 raise ValueError()
         except ValueError:
-            parser.error('argument --skip-regex: invalid COUNT %s' % count_str)
+            parser.error("argument --skip-regex: invalid COUNT %s" % count_str)
         progress.append_count_skip_regex(count, regex)
     if args.strip is None:
         progress.strip = not os.isatty(sys.stdout.fileno())
@@ -390,7 +416,7 @@ def inner_main():
     progress.outfile = stdout_writer(args.encoding)
     decoder = codecs.getincrementaldecoder(args.encoding)()
     ditto_files = []
-    mode = ('a' if args.append else 'w') + 'b'
+    mode = ("a" if args.append else "w") + "b"
 
     def read_into_queue(input_io, input_queue):
         block_size = 8192
@@ -400,7 +426,7 @@ def inner_main():
             if not raw_bytes:
                 break
 
-    stdin = io.open(0, 'rb', closefd=False, buffering=0)
+    stdin = io.open(0, "rb", closefd=False, buffering=0)
     stdin_queue = queue.Queue(10)
     t = threading.Thread(target=read_into_queue, args=(stdin, stdin_queue))
     t.daemon = True
@@ -428,7 +454,7 @@ def inner_main():
                     fwrite(f, raw_bytes)
                 progress.write(decoder.decode(raw_bytes))
 
-        progress.write(decoder.decode(bytes(b''), final=True))
+        progress.write(decoder.decode(bytes(b""), final=True))
 
     finally:
         progress.close()
@@ -443,5 +469,6 @@ def main():
     except KeyboardInterrupt:
         pass
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
