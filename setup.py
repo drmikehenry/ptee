@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-from setuptools import setup, find_packages
+import setuptools
 
 NAME = "ptee"
 
@@ -17,14 +17,20 @@ with open("README.rst", encoding="utf-8") as f:
 with open("requirements.txt", encoding="utf-8") as f:
     requirements = f.read()
 
-setup(
+with open("dev-requirements.txt", encoding="utf-8") as f:
+    dev_requirements = f.read()
+
+setuptools.setup(
     name=NAME,
     version=__version__,
-    packages=find_packages("src"),
+    packages=setuptools.find_packages("src"),
     package_dir={"": "src"},
     py_modules=[NAME],
     python_requires=">=3.5",
     install_requires=requirements,
+    extras_require={
+        "dev": dev_requirements,
+    },
     entry_points={"console_scripts": ["ptee=ptee:main"]},
     description=(
         '"Progress tee", an enhanced "tee" program with in-place '
