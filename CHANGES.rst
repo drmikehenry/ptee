@@ -2,6 +2,13 @@
 History
 *******
 
+Version 0.4.0
+=============
+
+- Remove Python 2 support.
+
+- Use new Python tooling: pip-tools, black, mypy, tox, pytest-style tests
+
 Version 0.3.2
 =============
 
