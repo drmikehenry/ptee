@@ -1,4 +1,7 @@
-dist
-*.egg-info
+*.egg-info/
 *.pyc
-__pycache__
+/.coverage
+/.tox/
+/dist/
+/htmlcov/
+__pycache__/

@@ -3,12 +3,15 @@
 
 import argparse
 import codecs
+from codecs import StreamWriter
 import io
 import os
 import queue
 import re
 import sys
 import threading
+from types import FrameType
+from typing import BinaryIO, List, TextIO, Tuple, Union
 
 try:
     from blessed import Terminal
@@ -49,16 +52,16 @@ _term_width = 80
 """Width of terminal in columns."""
 
 
-def get_terminal_width():
+def get_terminal_width() -> int:
     return _term_width
 
 
-def set_terminal_width(width):
+def set_terminal_width(width: int) -> None:
     global _term_width
     _term_width = width
 
 
-def track_terminal_width():
+def track_terminal_width() -> None:
     if not _term:
         return
     set_terminal_width(_term.width)
@@ -71,26 +74,19 @@ def track_terminal_width():
     except AttributeError:
         return
 
-    def handler(sig, action):
+    def handler(sig: int, action: FrameType) -> None:
         set_terminal_width(_term.width)
 
     signal.signal(signum, handler)
     signal.siginterrupt(signum, False)
 
 
-def stdout_writer(encoding):
+def stdout_writer(encoding: str) -> StreamWriter:
     # Wrap a codec around stdout's underlying binary buffer.
     return codecs.getwriter(encoding)(sys.stdout.buffer, errors="replace")
 
 
-def fwrite(file, string):
-    """Flushed write to file."""
-
-    file.write(string)
-    file.flush()
-
-
-def regex_join(*regexes):
+def regex_join(*regexes: str) -> str:
     """Join regular expressions with logical-OR operator '|'.
 
     Args:
@@ -104,77 +100,80 @@ def regex_join(*regexes):
 
 
 class Progress(object):
-    def __init__(self):
+    def __init__(self) -> None:
         self._last_status = ""
         self._strip = False
-        self._outfile = stdout_writer("utf-8")
-        self._regexes = []
+        self._outfile = stdout_writer(
+            "utf-8"
+        )  # type: Union[StreamWriter, TextIO]
+        self._regexes = []  # type: List[str]
         self._heading_regex = ""
-        self._count_skip_regexes = []
+        self._count_skip_regexes = []  # type: List[Tuple[int, str]]
         self._heading = ""
-        self._context_lines = []
+        self._context_lines = []  # type: List[str]
         self._display_level = 0
         self._width = 0
-        self._text_parts = []
+        self._text_parts = []  # type: List[str]
         self._within_partial_line = False
         self._num_lines_to_skip = 0
 
     @property
-    def outfile(self):
+    def outfile(self) -> Union[StreamWriter, TextIO]:
         return self._outfile
 
     @outfile.setter
-    def outfile(self, outfile):
+    def outfile(self, outfile: Union[StreamWriter, TextIO]) -> None:
         self._outfile = outfile
 
     @property
-    def strip(self):
+    def strip(self) -> bool:
         return self._strip
 
     @strip.setter
-    def strip(self, strip):
+    def strip(self, strip: bool) -> None:
         self._strip = strip
 
     @property
-    def width(self):
+    def width(self) -> int:
         return self._width
 
     @width.setter
-    def width(self, width):
+    def width(self, width: int) -> None:
         self._width = width
 
-    def append_level_regex(self, level, regex):
+    def append_level_regex(self, level: int, regex: str) -> None:
         while level >= len(self._regexes):
             self._regexes.append(r"")
         self._regexes[level] = regex_join(self._regexes[level], regex)
 
-    def append_heading_regex(self, regex):
+    def append_heading_regex(self, regex: str) -> None:
         self._heading_regex = regex_join(self._heading_regex, regex)
 
-    def append_count_skip_regex(self, count, skip_regex):
+    def append_count_skip_regex(self, count: int, skip_regex: str) -> None:
         self._count_skip_regexes.append((count, skip_regex))
 
-    def close(self):
+    def close(self) -> None:
         self.flush()
         self._erase_status()
 
     @property
-    def have_unwritten_data(self):
+    def have_unwritten_data(self) -> bool:
         return len(self._text_parts) != 0
 
-    def flush(self):
+    def flush(self) -> None:
         self._write_text_parts(flush=True)
 
-    def write(self, text):
+    def write(self, text: str) -> None:
         if text:
             self._text_parts.append(text)
             if self._within_partial_line or "\n" in text:
                 self._write_text_parts()
 
-    def _raw_write(self, string):
-        fwrite(self.outfile, string)
+    def _raw_write(self, string: str) -> None:
+        self.outfile.write(string)
+        self.outfile.flush()
 
-    def _write_status(self, status):
+    def _write_status(self, status: str) -> None:
         if not self.strip:
             status = status.rstrip().expandtabs()
             width = self.width or get_terminal_width()
@@ -192,16 +191,16 @@ class Progress(object):
                 self._raw_write(padded_status + "\r")
             self._last_status = status
 
-    def _erase_status(self):
+    def _erase_status(self) -> None:
         if self._last_status:
             self._raw_write(" " * len(self._last_status) + "\r")
             self._last_status = ""
 
-    def _clear_context(self):
+    def _clear_context(self) -> None:
         self._context_lines = []
         self._display_level = 0
 
-    def _set_context(self, level, context):
+    def _set_context(self, level: int, context: str) -> None:
         if self._display_level > level:
             self._display_level = level
         del self._context_lines[level + 1 :]
@@ -212,18 +211,18 @@ class Progress(object):
         lines = [line for line in lines if line]
         self._write_status("  ".join(lines))
 
-    def _show_context(self):
+    def _show_context(self) -> None:
         self._erase_status()
         end_level = len(self._context_lines)
         for level in range(self._display_level, end_level):
             self._raw_write(self._context_lines[level])
         self._display_level = end_level
 
-    def _write_in_context(self, s):
+    def _write_in_context(self, s: str) -> None:
         self._show_context()
         self._raw_write(s)
 
-    def _write_complete_line(self, line):
+    def _write_complete_line(self, line: str) -> None:
         """Write a complete line (exactly one newline; must be at the end).
         """
         if self._heading_regex and re.search(self._heading_regex, line):
@@ -235,7 +234,7 @@ class Progress(object):
         else:
             self._write_in_context(line)
 
-    def _write_line(self, line):
+    def _write_line(self, line: str) -> None:
         """Write a single line (with or without a newline at the end).
 
         line contains at most one newline; if present, it must be at the end.
@@ -257,7 +256,7 @@ class Progress(object):
             self._write_in_context(line)
             self._within_partial_line = not has_newline
 
-    def _write_text_parts(self, flush=False):
+    def _write_text_parts(self, flush: bool = False) -> None:
         if self._text_parts:
             joined_text = "".join(self._text_parts)
             self._text_parts = []
@@ -274,7 +273,7 @@ DEFAULT_LEVEL = 2
 """Default LEVEL value for --regex switch."""
 
 
-def make_parser():
+def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=description,
         epilog=epilog,
@@ -380,7 +379,9 @@ def make_parser():
     return parser
 
 
-def make_progress(parser, args):
+def make_progress(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> Progress:
     progress = Progress()
     for level, regex in args.level_regexes:
         try:
@@ -409,7 +410,7 @@ def make_progress(parser, args):
     return progress
 
 
-def read_into_queue(input_io, input_queue):
+def read_into_queue(input_io: BinaryIO, input_queue: queue.Queue) -> None:
     block_size = 8192
     while True:
         raw_bytes = input_io.read(block_size)
@@ -418,7 +419,7 @@ def read_into_queue(input_io, input_queue):
             break
 
 
-def inner_main():
+def inner_main() -> None:
     parser = make_parser()
     args = parser.parse_args()
     track_terminal_width()
@@ -429,7 +430,7 @@ def inner_main():
     mode = ("a" if args.append else "w") + "b"
 
     stdin = io.open(0, "rb", closefd=False, buffering=0)
-    stdin_queue = queue.Queue(10)
+    stdin_queue = queue.Queue(10)  # type: queue.Queue[bytes]
     t = threading.Thread(target=read_into_queue, args=(stdin, stdin_queue))
     t.daemon = True
     t.start()
@@ -453,7 +454,8 @@ def inner_main():
                 if not raw_bytes:
                     break
                 for f in ditto_files:
-                    fwrite(f, raw_bytes)
+                    f.write(raw_bytes)
+                    f.flush()
                 progress.write(decoder.decode(raw_bytes))
 
         progress.write(decoder.decode(bytes(b""), final=True))
@@ -465,7 +467,7 @@ def inner_main():
         t.join()
 
 
-def main():
+def main() -> None:
     try:
         inner_main()
     except KeyboardInterrupt:

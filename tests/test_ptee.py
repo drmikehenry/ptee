@@ -4,11 +4,12 @@
 from contextlib import closing
 from io import StringIO
 import textwrap
+from typing import Iterable
 
 import ptee
 
 
-def fixup_str(s):
+def fixup_str(s: str) -> str:
     if s.startswith("\n"):
         s = s[1:]
     s = textwrap.dedent(s)
@@ -17,7 +18,9 @@ def fixup_str(s):
     return s
 
 
-def raw_check(raw_input_strings, raw_expected_output_str):
+def raw_check(
+    raw_input_strings: Iterable[str], raw_expected_output_str: str
+) -> None:
     progress = ptee.Progress()
     progress.append_level_regex(1, r"^status")
     progress.append_heading_regex(r"^heading")
@@ -29,15 +32,15 @@ def raw_check(raw_input_strings, raw_expected_output_str):
     assert progress.outfile.getvalue() == raw_expected_output_str
 
 
-def check(input_str, expected_output_str):
+def check(input_str: str, expected_output_str: str) -> None:
     raw_check([fixup_str(input_str)], fixup_str(expected_output_str))
 
 
-def test_empty():
+def test_empty() -> None:
     check("", "")
 
 
-def test_spaces():
+def test_spaces() -> None:
     check(
         """
                line
@@ -50,11 +53,11 @@ def test_spaces():
     )
 
 
-def test_empty_line():
+def test_empty_line() -> None:
     check("\n", "\n")
 
 
-def test_no_status():
+def test_no_status() -> None:
     check(
         """
                line #1
@@ -67,7 +70,7 @@ def test_no_status():
     )
 
 
-def test_just_status():
+def test_just_status() -> None:
     check(
         """
                status #1
@@ -90,7 +93,7 @@ def test_just_status():
     )
 
 
-def test_simple():
+def test_simple() -> None:
     check(
         """
                line 1
@@ -115,7 +118,7 @@ def test_simple():
     )
 
 
-def test_heading():
+def test_heading() -> None:
     check(
         """
                heading line
@@ -140,7 +143,7 @@ def test_heading():
     )
 
 
-def test_parts():
+def test_parts() -> None:
     input_str = fixup_str(
         """
         status #1
