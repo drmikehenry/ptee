@@ -2,6 +2,18 @@
 "Progress Tee" - an enhanced "tee" program with in-place overwriting of status.
 *******************************************************************************
 
+.. image:: https://travis-ci.org/drmikehenry/ptee.svg
+    :target: https://travis-ci.org/drmikehenry/ptee
+
+.. image:: https://img.shields.io/pypi/v/ptee.svg
+    :target: https://pypi.python.org/pypi/ptee
+
+.. image:: https://img.shields.io/pypi/status/ptee.svg
+    :target: https://pypi.python.org/pypi/ptee
+
+.. image:: https://img.shields.io/pypi/pyversions/ptee.svg
+    :target: https://pypi.python.org/pypi/ptee/
+
 Introduction
 ============
 
