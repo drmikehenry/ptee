@@ -99,6 +99,30 @@ def regex_join(*regexes: str) -> str:
     return regex
 
 
+def readme():
+    # type: () -> None
+    import pkg_resources
+    import email
+    import textwrap
+
+    try:
+        dist = pkg_resources.get_distribution("ptee")
+        meta = dist.get_metadata(dist.PKG_INFO)
+    except (pkg_resources.DistributionNotFound, FileNotFoundError):
+        print("Cannot access README (try installing via pip or setup.py)")
+        return
+    msg = email.message_from_string(meta)
+    desc = msg.get("Description", "").strip()
+    if not desc and not msg.is_multipart():
+        desc = msg.get_payload().strip()
+    if not desc:
+        desc = "No README found"
+    if "\n" in desc:
+        first, rest = desc.split("\n", 1)
+        desc = "\n".join([first, textwrap.dedent(rest)])
+    print(desc)
+
+
 class Progress(object):
     def __init__(self) -> None:
         self._last_status = ""
@@ -283,6 +307,9 @@ def make_parser() -> argparse.ArgumentParser:
         "--version", action="version", version="%(prog)s " + __version__
     )
     parser.add_argument(
+        "--readme", action="store_true", help="display ptee README.rst"
+    )
+    parser.add_argument(
         "-a",
         "--append",
         action="store_true",
@@ -422,6 +449,9 @@ def read_into_queue(input_io: BinaryIO, input_queue: queue.Queue) -> None:
 def inner_main() -> None:
     parser = make_parser()
     args = parser.parse_args()
+    if args.readme:
+        readme()
+        return
     track_terminal_width()
     progress = make_progress(parser, args)
 
