@@ -8,7 +8,7 @@ NAME = "ptee"
 __version__ = None
 for line in open("src/{}.py".format(NAME), encoding="utf-8"):
     if line.startswith("__version__"):
-        __version__ = line.split("=")[1].strip().replace('"', "")
+        __version__ = line.split('"')[1]
         break
 
 with open("README.rst", encoding="utf-8") as f:
