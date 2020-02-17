@@ -1,7 +1,9 @@
 *.egg-info/
 *.pyc
 /.coverage
+/.coverage.py*
 /.tox/
+/build/
 /dist/
 /htmlcov/
 __pycache__/
