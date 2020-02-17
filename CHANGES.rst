@@ -2,6 +2,16 @@
 History
 *******
 
+Version 0.4.1
+=============
+
+- Add ``--readme`` switch to display README.rst.
+
+- Mark development status to "stable".
+
+- Small fixes: add badges to README.rst, update copyright dates, simplify
+  ``__version__`` parsing.
+
 Version 0.4.0
 =============
 
