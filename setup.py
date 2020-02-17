@@ -44,7 +44,7 @@ setuptools.setup(
     license="MIT",
     zip_safe=True,
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Topic :: Text Processing :: Filters",
         "Topic :: Utilities",
         "Environment :: Console",
