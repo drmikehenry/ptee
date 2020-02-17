@@ -28,9 +28,7 @@ setuptools.setup(
     py_modules=[NAME],
     python_requires=">=3.5",
     install_requires=requirements,
-    extras_require={
-        "dev": dev_requirements,
-    },
+    extras_require={"dev": dev_requirements},
     entry_points={"console_scripts": ["ptee=ptee:main"]},
     description=(
         '"Progress tee", an enhanced "tee" program with in-place '
