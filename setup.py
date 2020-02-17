@@ -8,7 +8,7 @@ NAME = "ptee"
 __version__ = None
 for line in open("src/{}.py".format(NAME), encoding="utf-8"):
     if line.startswith("__version__"):
-        __version__ = line.split("=")[1].strip().replace('"', "")
+        __version__ = line.split('"')[1]
         break
 
 with open("README.rst", encoding="utf-8") as f:
@@ -28,9 +28,7 @@ setuptools.setup(
     py_modules=[NAME],
     python_requires=">=3.5",
     install_requires=requirements,
-    extras_require={
-        "dev": dev_requirements,
-    },
+    extras_require={"dev": dev_requirements},
     entry_points={"console_scripts": ["ptee=ptee:main"]},
     description=(
         '"Progress tee", an enhanced "tee" program with in-place '
@@ -44,7 +42,7 @@ setuptools.setup(
     license="MIT",
     zip_safe=True,
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Topic :: Text Processing :: Filters",
         "Topic :: Utilities",
         "Environment :: Console",
