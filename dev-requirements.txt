@@ -4,32 +4,61 @@
 #
 #    pip-compile dev-requirements.in
 #
-attrs==19.3.0             # via pytest
-coverage==5.0.3           # via pytest-cov
-entrypoints==0.3          # via flake8
+attrs==19.3.0
+    # via pytest
+coverage==5.0.3
+    # via pytest-cov
+entrypoints==0.3
+    # via flake8
 flake8-import-order==0.18.1
-flake8-polyfill==1.0.2    # via pep8-naming
+    # via -r dev-requirements.in
+flake8-polyfill==1.0.2
+    # via pep8-naming
 flake8-quotes==2.1.1
+    # via -r dev-requirements.in
 flake8==3.7.9
-importlib-metadata==1.4.0  # via pluggy, pytest
-mccabe==0.6.1             # via flake8
-more-itertools==8.1.0     # via pytest, zipp
-mypy-extensions==0.4.3    # via mypy
+    # via
+    #   -r dev-requirements.in
+    #   flake8-polyfill
+    #   flake8-quotes
+mccabe==0.6.1
+    # via flake8
+more-itertools==8.1.0
+    # via pytest
+mypy-extensions==0.4.3
+    # via mypy
 mypy==0.761
-packaging==20.0           # via pytest
+    # via -r dev-requirements.in
+packaging==20.0
+    # via pytest
 pep8-naming==0.9.1
-pluggy==0.13.1            # via pytest
-py==1.8.1                 # via pytest
-pycodestyle==2.5.0        # via flake8, flake8-import-order
-pyflakes==2.1.1           # via flake8
-pyparsing==2.4.6          # via packaging
+    # via -r dev-requirements.in
+pluggy==0.13.1
+    # via pytest
+py==1.10.0
+    # via pytest
+pycodestyle==2.5.0
+    # via
+    #   flake8
+    #   flake8-import-order
+pyflakes==2.1.1
+    # via flake8
+pyparsing==2.4.6
+    # via packaging
 pytest-cov==2.8.1
+    # via -r dev-requirements.in
 pytest==5.3.3
-six==1.14.0               # via packaging
-typed-ast==1.4.1          # via mypy
-typing-extensions==3.7.4.1  # via mypy
-wcwidth==0.1.8            # via pytest
-zipp==1.0.0               # via importlib-metadata
+    # via
+    #   -r dev-requirements.in
+    #   pytest-cov
+six==1.14.0
+    # via packaging
+typed-ast==1.4.1
+    # via mypy
+typing-extensions==3.7.4.1
+    # via mypy
+wcwidth==0.1.8
+    # via pytest
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
